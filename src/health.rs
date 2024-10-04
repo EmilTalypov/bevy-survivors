@@ -1,12 +1,25 @@
+use crate::{
+    collision::Collider,
+    ghost::Ghost,
+    player::{Dagger, Player},
+    schedule::InGame,
+};
 use bevy::prelude::*;
-
-use crate::{collision::Collider, player::Player, schedule::InGame};
 
 pub struct HealthPlugin;
 
 impl Plugin for HealthPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(PostUpdate, take_damage.in_set(InGame::ProcessCombat));
+        app.add_systems(
+            Update,
+            (
+                take_damage::<Player, Ghost>,
+                take_damage::<Ghost, Dagger>,
+                despawn_dead_entities,
+            )
+                .chain()
+                .in_set(InGame::ProcessCombat),
+        );
     }
 }
 
@@ -27,19 +40,34 @@ impl Health {
     }
 }
 
-fn take_damage(mut player_q: Query<(&mut Health, &Collider), With<Player>>, time: Res<Time>) {
-    let Ok((mut health, collider)) = player_q.get_single_mut() else {
-        return;
-    };
+fn take_damage<T: Component, E: Component>(
+    mut player_q: Query<(&mut Health, &Collider), With<T>>,
+    enemies: Query<&E, With<Collider>>,
+    time: Res<Time>,
+) {
+    for (mut health, collider) in player_q.iter_mut() {
+        let can_be_damaged = collider.collisions.iter().any(|e| enemies.contains(*e));
 
-    if !collider.collisions.is_empty() && health.cooldown.paused() {
-        health.cooldown.unpause();
+        if can_be_damaged && health.cooldown.paused() {
+            health.cooldown.unpause();
+        }
+
+        health.cooldown.tick(time.delta());
+
+        if can_be_damaged && health.cooldown.finished() {
+            health.cooldown.reset();
+            health.amount = health.amount.saturating_sub(1);
+        }
     }
+}
 
-    health.cooldown.tick(time.delta());
-
-    if !collider.collisions.is_empty() && health.cooldown.finished() {
-        health.cooldown.reset();
-        health.amount = health.amount.saturating_sub(1);
+fn despawn_dead_entities(
+    mut commands: Commands,
+    entities_q: Query<(Entity, &Health), Without<Player>>,
+) {
+    for (entity, health) in entities_q.iter() {
+        if health.amount == 0 {
+            commands.entity(entity).despawn_recursive();
+        }
     }
 }

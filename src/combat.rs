@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::{collision::Collider, player::Player, schedule::InGame};
+use crate::{collision::Collider, ghost::Ghost, player::Player, schedule::InGame};
 
 pub struct CombatPlugin;
 
@@ -9,12 +9,12 @@ impl Plugin for CombatPlugin {
         app.add_systems(Update, apply_knockback.in_set(InGame::EntityUpdate))
             .add_systems(
                 Update,
-                knockback_collisions::<Player>.in_set(InGame::ProcessCombat),
+                knockback_collisions::<Player, Ghost>.in_set(InGame::ProcessCombat),
             );
     }
 }
 
-const KNOCK_BACK_DISTANCE: f32 = 32.;
+const KNOCK_BACK_DISTANCE: f32 = 16.;
 const KNOCK_BACK_DURATION: f32 = 0.1;
 
 #[derive(Component, Debug)]
@@ -40,10 +40,10 @@ fn apply_knockback(
     }
 }
 
-fn knockback_collisions<T: Component>(
+fn knockback_collisions<T: Component, C: Component>(
     mut commands: Commands,
     collider_q: Query<(Entity, &Collider, &Transform), (With<T>, Without<KnockBack>)>,
-    collided_q: Query<&Transform, With<Collider>>,
+    collided_q: Query<&Transform, (With<Collider>, With<C>)>,
 ) {
     for (entity, collider, transform) in collider_q.iter() {
         let mut direction = Vec3::ZERO;

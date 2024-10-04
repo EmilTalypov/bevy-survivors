@@ -1,3 +1,5 @@
+use core::f32;
+
 use bevy::prelude::*;
 
 use crate::{
@@ -13,6 +15,7 @@ pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(PostStartup, spawn_player)
+            .add_systems(Update, throw_weapon.in_set(InGame::ProcessCombat))
             .add_systems(Update, player_movement.in_set(InGame::UserInput));
     }
 }
@@ -20,9 +23,18 @@ impl Plugin for PlayerPlugin {
 const PLAYER_SPEED: f32 = 50.;
 const PLAYER_SIZE: Vec2 = Vec2::splat(15.);
 const PLAYER_START_HEALTH: u32 = 30;
+const PLAYER_ATTACK_COOLDOWN: f32 = 1.;
+const DAGGER_SPEED: f32 = 25.;
+const DAGGER_SPAWN_DISTANCE: f32 = 16.;
 
 #[derive(Component, Debug)]
 pub struct Player;
+
+#[derive(Component, Debug)]
+pub struct Weapon(Timer);
+
+#[derive(Component, Debug)]
+pub struct Dagger;
 
 fn spawn_player(mut commands: Commands, sprite_assets: Res<SpriteAssets>) {
     commands.spawn((
@@ -34,6 +46,10 @@ fn spawn_player(mut commands: Commands, sprite_assets: Res<SpriteAssets>) {
         MovementBundle {
             velocity: Velocity::new(0., 0.),
         },
+        Weapon(Timer::from_seconds(
+            PLAYER_ATTACK_COOLDOWN,
+            TimerMode::Repeating,
+        )),
         Collider::new(PLAYER_SIZE),
         Health::new(PLAYER_START_HEALTH),
     ));
@@ -57,5 +73,44 @@ fn player_movement(
         }
 
         player_velocity.change_direction_speed(direction, PLAYER_SPEED);
+    }
+}
+
+fn throw_weapon(
+    mut commands: Commands,
+    mut player_q: Query<(&mut Weapon, &Transform), With<Player>>,
+    time: Res<Time>,
+    sprite_assets: Res<SpriteAssets>,
+) {
+    let (mut weapon, player_transform) = player_q.single_mut();
+
+    weapon.0.tick(time.delta());
+
+    if weapon.0.just_finished() {
+        for (i, direction) in [Vec3::Y, Vec3::NEG_X, Vec3::NEG_Y, Vec3::X]
+            .into_iter()
+            .enumerate()
+        {
+            let mut transform = *player_transform;
+
+            transform.translation += direction * DAGGER_SPAWN_DISTANCE;
+            transform.rotate(Quat::from_axis_angle(
+                Vec3::Z,
+                (i as f32) * f32::consts::FRAC_PI_2,
+            ));
+
+            commands.spawn((
+                Dagger,
+                SpriteBundle {
+                    texture: sprite_assets.dagger.clone(),
+                    transform,
+                    ..default()
+                },
+                Collider::new(Vec2::new(8., 13.)),
+                MovementBundle {
+                    velocity: Velocity::from_direction_speed(direction, DAGGER_SPEED),
+                },
+            ));
+        }
     }
 }

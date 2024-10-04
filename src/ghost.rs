@@ -1,6 +1,7 @@
 use crate::{
     asset_loader::SpriteAssets,
     collision::Collider,
+    health::Health,
     movement::{MovementBundle, Velocity},
     player::Player,
     schedule::InGame,
@@ -65,6 +66,7 @@ fn spawn_ghost(
                 ..default()
             },
             Ghost,
+            Health::new(1),
             MovementBundle {
                 velocity: Velocity::from_direction_speed(direction, GHOST_SPEED),
             },
