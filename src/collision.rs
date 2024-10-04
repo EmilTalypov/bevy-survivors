@@ -50,31 +50,3 @@ fn detect_collisions(mut colliders_q: Query<(Entity, &Transform, &mut Collider)>
         collider_a.collisions = collisions.remove(&entity_a).unwrap_or_default();
     }
 }
-
-// fn knock_back_player(
-//     mut player_q: Query<(&Collider, &Transform, &mut Velocity), With<Player>>,
-//     transforms: Query<&Transform>,
-//     time: Res<Time>,
-// ) {
-//     let Ok((collider, transform, mut velocity)) = player_q.get_single_mut() else {
-//         return;
-//     };
-
-//     let mut knock_back = Vec3::ZERO;
-
-//     for collision in collider.collisions.iter() {
-//         let enemy_transform = transforms
-//             .get(*collision)
-//             .expect("Collided with entity without transform");
-
-//         let direction = (transform.translation - enemy_transform.translation)
-//             .try_normalize()
-//             .unwrap_or(Vec3::NEG_X);
-
-//         let acceleration = direction * 30.;
-
-//         knock_back += acceleration;
-//     }
-
-//     velocity.accelerate(knock_back, time.elapsed_seconds());
-// }

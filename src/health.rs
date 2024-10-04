@@ -10,6 +10,8 @@ impl Plugin for HealthPlugin {
     }
 }
 
+const DAMAGE_COOLDOWN: f32 = 0.25;
+
 #[derive(Component, Debug)]
 pub struct Health {
     amount: u32,
@@ -18,7 +20,7 @@ pub struct Health {
 
 impl Health {
     pub fn new(amount: u32) -> Self {
-        let mut cooldown = Timer::from_seconds(0.25, TimerMode::Once);
+        let mut cooldown = Timer::from_seconds(DAMAGE_COOLDOWN, TimerMode::Once);
         cooldown.pause();
 
         Self { amount, cooldown }

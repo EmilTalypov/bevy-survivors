@@ -2,6 +2,7 @@ use asset_loader::AssetLoaderPlugin;
 use bevy::prelude::*;
 use camera::CameraPlugin;
 use collision::CollisionPlugin;
+use combat::CombatPlugin;
 use ghost::GhostPlugin;
 use health::HealthPlugin;
 use movement::MovementPlugin;
@@ -11,7 +12,8 @@ use schedule::SchedulePlugin;
 mod asset_loader;
 mod camera;
 mod collision;
-mod ghost;
+mod combat;
+pub mod ghost;
 mod health;
 mod movement;
 pub mod player;
@@ -37,6 +39,7 @@ fn main() {
         .add_plugins(SchedulePlugin)
         .add_plugins(AssetLoaderPlugin)
         .add_plugins(CameraPlugin)
+        .add_plugins(CombatPlugin)
         .add_plugins(CollisionPlugin)
         .add_plugins(GhostPlugin)
         .add_plugins(HealthPlugin)
