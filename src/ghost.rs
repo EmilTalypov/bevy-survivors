@@ -37,7 +37,7 @@ impl Default for SpawnTimer {
 
 fn spawn_ghost(
     mut commands: Commands,
-    sprite_assets: Res<SpriteAssets>,
+    sprites: Res<SpriteAssets>,
     mut timer: ResMut<SpawnTimer>,
     time: Res<Time>,
     window_q: Query<&Window>,
@@ -62,7 +62,7 @@ fn spawn_ghost(
         commands.spawn((
             SpriteBundle {
                 transform: Transform::from_translation(spawn_point),
-                texture: sprite_assets.ghost.clone(),
+                texture: sprites.ghost.clone(),
                 ..default()
             },
             Ghost,

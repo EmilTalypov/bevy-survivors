@@ -20,7 +20,7 @@ impl Plugin for PlayerPlugin {
     }
 }
 
-const PLAYER_SPEED: f32 = 50.;
+const PLAYER_SPEED: f32 = 150.;
 const PLAYER_SIZE: Vec2 = Vec2::splat(15.);
 const PLAYER_START_HEALTH: u32 = 30;
 const PLAYER_ATTACK_COOLDOWN: f32 = 1.;
@@ -36,10 +36,10 @@ pub struct Weapon(Timer);
 #[derive(Component, Debug)]
 pub struct Dagger;
 
-fn spawn_player(mut commands: Commands, sprite_assets: Res<SpriteAssets>) {
+fn spawn_player(mut commands: Commands, sprites: Res<SpriteAssets>) {
     commands.spawn((
         SpriteBundle {
-            texture: sprite_assets.knight.clone(),
+            texture: sprites.knight.clone(),
             ..default()
         },
         Player,
@@ -80,7 +80,7 @@ fn throw_weapon(
     mut commands: Commands,
     mut player_q: Query<(&mut Weapon, &Transform), With<Player>>,
     time: Res<Time>,
-    sprite_assets: Res<SpriteAssets>,
+    sprites: Res<SpriteAssets>,
 ) {
     let (mut weapon, player_transform) = player_q.single_mut();
 
@@ -102,7 +102,7 @@ fn throw_weapon(
             commands.spawn((
                 Dagger,
                 SpriteBundle {
-                    texture: sprite_assets.dagger.clone(),
+                    texture: sprites.dagger.clone(),
                     transform,
                     ..default()
                 },

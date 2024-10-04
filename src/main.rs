@@ -5,6 +5,7 @@ use collision::CollisionPlugin;
 use combat::CombatPlugin;
 use ghost::GhostPlugin;
 use health::HealthPlugin;
+use map::MapPlugin;
 use movement::MovementPlugin;
 use player::PlayerPlugin;
 use schedule::SchedulePlugin;
@@ -15,6 +16,7 @@ mod collision;
 mod combat;
 pub mod ghost;
 mod health;
+pub mod map;
 mod movement;
 pub mod player;
 pub mod schedule;
@@ -43,6 +45,7 @@ fn main() {
         .add_plugins(CollisionPlugin)
         .add_plugins(GhostPlugin)
         .add_plugins(HealthPlugin)
+        .add_plugins(MapPlugin)
         .add_plugins(MovementPlugin)
         .add_plugins(PlayerPlugin)
         .run();
