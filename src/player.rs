@@ -20,7 +20,7 @@ impl Plugin for PlayerPlugin {
     }
 }
 
-const PLAYER_SPEED: f32 = 150.;
+const PLAYER_SPEED: f32 = 50.;
 const PLAYER_SIZE: Vec2 = Vec2::splat(15.);
 const PLAYER_START_HEALTH: u32 = 30;
 const PLAYER_ATTACK_COOLDOWN: f32 = 1.;
