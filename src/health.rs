@@ -1,5 +1,5 @@
 use crate::{
-    collision::Collider,
+    collision::{CollisionDamage, CollisionEvent},
     ghost::Ghost,
     player::{Dagger, Player},
     schedule::InGame,
@@ -19,44 +19,67 @@ impl Plugin for HealthPlugin {
             )
                 .chain()
                 .in_set(InGame::ProcessCombat),
-        );
+        )
+        .add_systems(Update, tick_damage_cooldown.in_set(InGame::EntityUpdate));
     }
 }
-
-const DAMAGE_COOLDOWN: f32 = 0.25;
 
 #[derive(Component, Debug)]
 pub struct Health {
     amount: u32,
+    pub cooldown: Option<f32>,
+}
+
+#[derive(Component, Debug)]
+pub struct DamageCooldown {
     pub cooldown: Timer,
+}
+
+impl DamageCooldown {
+    fn new(cooldown: f32) -> Self {
+        Self {
+            cooldown: Timer::from_seconds(cooldown, TimerMode::Once),
+        }
+    }
 }
 
 impl Health {
     pub fn new(amount: u32) -> Self {
-        let mut cooldown = Timer::from_seconds(DAMAGE_COOLDOWN, TimerMode::Once);
-        cooldown.pause();
+        Self {
+            amount,
+            cooldown: None,
+        }
+    }
 
-        Self { amount, cooldown }
+    pub fn with_damage_cooldown(amount: u32, cooldown: f32) -> Self {
+        Self {
+            amount,
+            cooldown: Some(cooldown),
+        }
     }
 }
 
 fn take_damage<T: Component, E: Component>(
-    mut player_q: Query<(&mut Health, &Collider), With<T>>,
-    enemies: Query<&E, With<Collider>>,
-    time: Res<Time>,
+    mut commands: Commands,
+    mut events: EventReader<CollisionEvent>,
+    mut reciever_q: Query<&mut Health, (With<T>, Without<DamageCooldown>)>,
+    damager_q: Query<&CollisionDamage, With<E>>,
 ) {
-    for (mut health, collider) in player_q.iter_mut() {
-        let can_be_damaged = collider.collisions.iter().any(|e| enemies.contains(*e));
+    for collision in events.read() {
+        let Ok(mut health) = reciever_q.get_mut(collision.entity) else {
+            continue;
+        };
 
-        if can_be_damaged && health.cooldown.paused() {
-            health.cooldown.unpause();
-        }
+        let Ok(damage) = damager_q.get(collision.collided_with) else {
+            continue;
+        };
 
-        health.cooldown.tick(time.delta());
+        health.amount = health.amount.saturating_sub(damage.amount);
 
-        if can_be_damaged && health.cooldown.finished() {
-            health.cooldown.reset();
-            health.amount = health.amount.saturating_sub(1);
+        if let Some(duration) = health.cooldown.as_ref() {
+            commands
+                .entity(collision.entity)
+                .insert(DamageCooldown::new(*duration));
         }
     }
 }
@@ -68,6 +91,20 @@ fn despawn_dead_entities(
     for (entity, health) in entities_q.iter() {
         if health.amount == 0 {
             commands.entity(entity).despawn_recursive();
+        }
+    }
+}
+
+fn tick_damage_cooldown(
+    mut commands: Commands,
+    mut entities_q: Query<(Entity, &mut DamageCooldown)>,
+    time: Res<Time>,
+) {
+    for (entity, mut timer) in entities_q.iter_mut() {
+        timer.cooldown.tick(time.delta());
+
+        if timer.cooldown.just_finished() {
+            commands.entity(entity).remove::<DamageCooldown>();
         }
     }
 }

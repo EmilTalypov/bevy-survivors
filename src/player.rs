@@ -4,7 +4,7 @@ use bevy::prelude::*;
 
 use crate::{
     asset_loader::SpriteAssets,
-    collision::Collider,
+    collision::{Collider, CollisionDamage},
     health::Health,
     movement::{MovementBundle, Velocity},
     schedule::InGame,
@@ -24,8 +24,11 @@ const PLAYER_SPEED: f32 = 50.;
 const PLAYER_SIZE: Vec2 = Vec2::splat(15.);
 const PLAYER_START_HEALTH: u32 = 30;
 const PLAYER_ATTACK_COOLDOWN: f32 = 1.;
+const PLAYER_DAMAGE_COOLDOWN: f32 = 0.25;
 const DAGGER_SPEED: f32 = 25.;
 const DAGGER_SPAWN_DISTANCE: f32 = 16.;
+const DAGGER_DAMAGE: u32 = 5;
+const DAGGER_HEALTH: u32 = 1;
 
 #[derive(Component, Debug)]
 pub struct Player;
@@ -99,6 +102,12 @@ fn throw_weapon(
                 (i as f32) * f32::consts::FRAC_PI_2,
             ));
 
+            let collider_size = if i % 2 == 0 {
+                Vec2::new(8., 13.)
+            } else {
+                Vec2::new(13., 8.)
+            };
+
             commands.spawn((
                 Dagger,
                 SpriteBundle {
@@ -106,7 +115,9 @@ fn throw_weapon(
                     transform,
                     ..default()
                 },
-                Collider::new(Vec2::new(8., 13.)),
+                Collider::new(collider_size),
+                CollisionDamage::new(DAGGER_DAMAGE),
+                Health::with_damage_cooldown(DAGGER_HEALTH, PLAYER_DAMAGE_COOLDOWN),
                 MovementBundle {
                     velocity: Velocity::from_direction_speed(direction, DAGGER_SPEED),
                 },

@@ -1,6 +1,6 @@
 use crate::{
     asset_loader::SpriteAssets,
-    collision::Collider,
+    collision::{Collider, CollisionDamage},
     health::Health,
     movement::{MovementBundle, Velocity},
     player::Player,
@@ -22,6 +22,8 @@ impl Plugin for GhostPlugin {
 const GHOST_SPEED: f32 = 30.;
 const SPAWN_INTERVAL: f32 = 1.;
 const GHOST_SIZE: Vec2 = Vec2::splat(15.);
+const GHOST_HEALTH: u32 = 10;
+const GHOST_DAMAGE: u32 = 5;
 
 #[derive(Component, Debug)]
 pub struct Ghost;
@@ -66,7 +68,8 @@ fn spawn_ghost(
                 ..default()
             },
             Ghost,
-            Health::new(1),
+            Health::new(GHOST_HEALTH),
+            CollisionDamage::new(GHOST_DAMAGE),
             MovementBundle {
                 velocity: Velocity::from_direction_speed(direction, GHOST_SPEED),
             },

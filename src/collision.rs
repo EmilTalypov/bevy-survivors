@@ -1,12 +1,41 @@
 use bevy::{prelude::*, utils::hashbrown::HashMap};
 
-use crate::schedule::InGame;
+use crate::{
+    ghost::Ghost,
+    player::{Dagger, Player},
+    schedule::InGame,
+};
 
 pub struct CollisionPlugin;
 
 impl Plugin for CollisionPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, detect_collisions.in_set(InGame::CollisionDetection));
+        app.add_systems(Update, detect_collisions.in_set(InGame::CollisionDetection))
+            .add_systems(
+                Update,
+                (
+                    handle_collisions::<Player>,
+                    handle_collisions::<Ghost>,
+                    handle_collisions::<Dagger>,
+                )
+                    .in_set(InGame::ProcessCombat),
+            )
+            .add_event::<CollisionEvent>();
+    }
+}
+
+#[derive(Event, Debug)]
+pub struct CollisionEvent {
+    pub entity: Entity,
+    pub collided_with: Entity,
+}
+
+impl CollisionEvent {
+    fn new(entity: Entity, collided_with: Entity) -> Self {
+        Self {
+            entity,
+            collided_with,
+        }
     }
 }
 
@@ -20,6 +49,17 @@ pub struct Collider {
 impl Default for Collider {
     fn default() -> Self {
         Self::new(Vec2::ZERO)
+    }
+}
+
+#[derive(Component, Debug)]
+pub struct CollisionDamage {
+    pub amount: u32,
+}
+
+impl CollisionDamage {
+    pub fn new(amount: u32) -> Self {
+        Self { amount }
     }
 }
 
@@ -63,5 +103,16 @@ fn detect_collisions(mut colliders_q: Query<(Entity, &Transform, &mut Collider)>
     for (entity_a, _, mut collider_a) in colliders_q.iter_mut() {
         collider_a.collisions.clear();
         collider_a.collisions = collisions.remove(&entity_a).unwrap_or_default();
+    }
+}
+
+fn handle_collisions<T: Component>(
+    mut events: EventWriter<CollisionEvent>,
+    entities_q: Query<(Entity, &Collider), With<T>>,
+) {
+    for (entity, collider) in entities_q.iter() {
+        for collided_with in collider.collisions.iter() {
+            events.send(CollisionEvent::new(entity, *collided_with));
+        }
     }
 }
