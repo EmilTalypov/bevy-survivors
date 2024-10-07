@@ -1,6 +1,7 @@
 use bevy::prelude::*;
+use bevy_ecs_ldtk::prelude::*;
 
-use crate::{map::grid_to_world, map::Map, player::Player, schedule::InGame};
+use crate::{player::Player, schedule::InGame};
 
 pub struct CameraPlugin;
 
@@ -11,32 +12,43 @@ impl Plugin for CameraPlugin {
     }
 }
 
-const CAMERA_SCALE: f32 = 0.75;
-
 fn spawn_camera(mut commands: Commands) {
-    let mut camera = Camera2dBundle::default();
-    camera.projection.scale = CAMERA_SCALE;
-    commands.spawn(camera);
+    commands.spawn(Camera2dBundle::default());
 }
 
 fn camera_follows_player(
     player_q: Query<&Transform, With<Player>>,
     mut camera_q: Query<(&mut Transform, &OrthographicProjection), Without<Player>>,
-    map: Res<Map>,
+    levels_q: Query<(&Transform, &LevelIid), (Without<OrthographicProjection>, Without<Player>)>,
+    level_selection: Res<LevelSelection>,
+    project: Query<&Handle<LdtkProject>>,
+    project_assets: Res<Assets<LdtkProject>>,
 ) {
     let Ok(player_transform) = player_q.get_single() else {
         return;
     };
 
-    let (mut camera_transform, projection) = camera_q.get_single_mut().expect("No Camera!");
+    for (level_transform, level_iid) in &levels_q {
+        let project = project_assets.get(project.single()).expect("No project!");
 
-    let bottom_left = grid_to_world(-(map.dimensions / 2));
-    let top_right = grid_to_world(map.dimensions / 2);
+        let level = project
+            .get_raw_level_by_iid(&level_iid.to_string())
+            .expect("No level!");
 
-    let min_camera_position = bottom_left - projection.area.min.extend(0.);
-    let max_camera_position = top_right - projection.area.max.extend(0.);
+        if level_selection.is_match(&LevelIndices::default(), level) {
+            let (mut camera_transform, projection) = camera_q.get_single_mut().expect("No Camera!");
 
-    camera_transform.translation = player_transform
-        .translation
-        .clamp(min_camera_position, max_camera_position);
+            let top_right = Vec3::new(level.px_wid as f32, level.px_hei as f32, 0.);
+            let bottom_left = Vec3::ZERO;
+
+            let min_camera_position =
+                bottom_left - projection.area.min.extend(0.) + level_transform.translation;
+            let max_camera_position =
+                top_right - projection.area.max.extend(0.) + level_transform.translation;
+
+            camera_transform.translation = player_transform
+                .translation
+                .clamp(min_camera_position, max_camera_position);
+        }
+    }
 }

@@ -1,6 +1,7 @@
 use core::f32;
 
 use bevy::prelude::*;
+use bevy_ecs_ldtk::{app::LdtkEntityAppExt, LdtkEntity, LdtkSpriteSheetBundle};
 
 use crate::{
     asset_loader::SpriteAssets,
@@ -14,7 +15,7 @@ pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(PostStartup, spawn_player)
+        app.register_ldtk_entity::<PlayerBundle>("Player")
             .add_systems(Update, throw_weapon.in_set(InGame::ProcessCombat))
             .add_systems(Update, player_movement.in_set(InGame::UserInput));
     }
@@ -30,7 +31,7 @@ const DAGGER_SPAWN_DISTANCE: f32 = 16.;
 const DAGGER_DAMAGE: u32 = 5;
 const DAGGER_HEALTH: u32 = 1;
 
-#[derive(Component, Debug)]
+#[derive(Component, Debug, Default)]
 pub struct Player;
 
 #[derive(Component, Debug)]
@@ -39,23 +40,33 @@ pub struct Weapon(Timer);
 #[derive(Component, Debug)]
 pub struct Dagger;
 
-fn spawn_player(mut commands: Commands, sprites: Res<SpriteAssets>) {
-    commands.spawn((
-        SpriteBundle {
-            texture: sprites.knight.clone(),
-            ..default()
-        },
-        Player,
-        MovementBundle {
-            velocity: Velocity::new(0., 0.),
-        },
-        Weapon(Timer::from_seconds(
-            PLAYER_ATTACK_COOLDOWN,
-            TimerMode::Repeating,
-        )),
-        Collider::new(PLAYER_SIZE),
-        Health::new(PLAYER_START_HEALTH),
-    ));
+#[derive(Bundle, Debug, LdtkEntity)]
+pub struct PlayerBundle {
+    player: Player,
+    #[sprite_sheet_bundle]
+    sprite_sheet_bundle: LdtkSpriteSheetBundle,
+    health: Health,
+    collider: Collider,
+    weapon: Weapon,
+    movement: MovementBundle,
+}
+
+impl Default for PlayerBundle {
+    fn default() -> Self {
+        Self {
+            player: Player,
+            sprite_sheet_bundle: Default::default(),
+            movement: MovementBundle {
+                velocity: Velocity::new(0., 0.),
+            },
+            weapon: Weapon(Timer::from_seconds(
+                PLAYER_ATTACK_COOLDOWN,
+                TimerMode::Repeating,
+            )),
+            collider: Collider::new(PLAYER_SIZE),
+            health: Health::new(PLAYER_START_HEALTH),
+        }
+    }
 }
 
 fn player_movement(
@@ -85,7 +96,9 @@ fn throw_weapon(
     time: Res<Time>,
     sprites: Res<SpriteAssets>,
 ) {
-    let (mut weapon, player_transform) = player_q.single_mut();
+    let Ok((mut weapon, player_transform)) = player_q.get_single_mut() else {
+        return;
+    };
 
     weapon.0.tick(time.delta());
 

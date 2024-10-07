@@ -1,14 +1,5 @@
-use asset_loader::AssetLoaderPlugin;
 use bevy::prelude::*;
-use camera::CameraPlugin;
-use collision::CollisionPlugin;
-use combat::CombatPlugin;
-use ghost::GhostPlugin;
-use health::HealthPlugin;
-use map::MapPlugin;
-use movement::MovementPlugin;
-use player::PlayerPlugin;
-use schedule::SchedulePlugin;
+use bevy_ecs_ldtk::prelude::*;
 
 mod asset_loader;
 mod camera;
@@ -16,7 +7,7 @@ mod collision;
 mod combat;
 pub mod ghost;
 mod health;
-pub mod map;
+mod levels;
 mod movement;
 pub mod player;
 pub mod schedule;
@@ -29,24 +20,29 @@ fn main() {
             color: Color::srgb(1., 1., 1.),
             brightness: 0.95,
         })
-        .add_plugins(DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(Window {
-                title: "Bevy Survivors".to_string(),
-                resolution: (800., 600.).into(),
-                ..default()
-            }),
-            ..default()
-        }))
+        .add_plugins(
+            DefaultPlugins
+                .set(WindowPlugin {
+                    primary_window: Some(Window {
+                        title: "Bevy Survivors".to_string(),
+                        resolution: (800., 600.).into(),
+                        ..default()
+                    }),
+                    ..default()
+                })
+                .set(ImagePlugin::default_nearest()),
+        )
+        .add_plugins(LdtkPlugin)
         // my plugins
-        .add_plugins(SchedulePlugin)
-        .add_plugins(AssetLoaderPlugin)
-        .add_plugins(CameraPlugin)
-        .add_plugins(CombatPlugin)
-        .add_plugins(CollisionPlugin)
-        .add_plugins(GhostPlugin)
-        .add_plugins(HealthPlugin)
-        .add_plugins(MapPlugin)
-        .add_plugins(MovementPlugin)
-        .add_plugins(PlayerPlugin)
+        .add_plugins(schedule::SchedulePlugin)
+        .add_plugins(asset_loader::AssetLoaderPlugin)
+        .add_plugins(camera::CameraPlugin)
+        .add_plugins(levels::LevelsPlugin)
+        .add_plugins(combat::CombatPlugin)
+        .add_plugins(collision::CollisionPlugin)
+        .add_plugins(ghost::GhostPlugin)
+        .add_plugins(health::HealthPlugin)
+        .add_plugins(movement::MovementPlugin)
+        .add_plugins(player::PlayerPlugin)
         .run();
 }
