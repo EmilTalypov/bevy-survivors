@@ -57,7 +57,7 @@ fn spawn_ghost(
         let vector_on_square = unit_vector / unit_vector.x.abs().max(unit_vector.y.abs());
 
         let spawn_point =
-            vector_on_square.extend(0.) * Vec3::new(window.width() / 2., window.height() / 2., 0.);
+            vector_on_square.extend(0.) * Vec3::new(window.width(), window.height(), 0.);
 
         let direction = Vec3::ZERO - spawn_point;
 

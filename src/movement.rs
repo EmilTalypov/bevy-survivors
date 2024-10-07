@@ -1,6 +1,12 @@
 use bevy::prelude::*;
 
-use crate::{collision::Collider, ghost::Ghost, levels::Wall, player::Player, schedule::InGame};
+use crate::{
+    collision::{Collider, CollisionEvent},
+    ghost::Ghost,
+    levels::Wall,
+    player::Player,
+    schedule::InGame,
+};
 
 pub struct MovementPlugin;
 
@@ -54,22 +60,31 @@ fn update_position(mut query: Query<(&Velocity, &mut Transform)>, time: Res<Time
 }
 
 fn keep_inside_walls<T: Component>(
+    mut events: EventReader<CollisionEvent>,
     mut entities_q: Query<(&mut Transform, &Collider), (With<T>, Without<Wall>)>,
     walls_q: Query<(&Transform, &Collider), With<Wall>>,
 ) {
-    for (mut transform, collider) in entities_q.iter_mut() {
-        let entity_rect = collider.to_rect_at(&transform);
+    for event in events.read() {
+        let Ok((mut entity_transform, entity_collider)) = entities_q.get_mut(event.entity) else {
+            continue;
+        };
 
-        for collided_entity in collider.collisions.iter() {
-            if let Ok((wall_transform, wall_collider)) = walls_q.get(*collided_entity) {
-                let wall_rect = wall_collider.to_rect_at(wall_transform);
+        let Ok((wall_transform, wall_collider)) = walls_q.get(event.collided_with) else {
+            continue;
+        };
 
-                let overlap = entity_rect.intersect(wall_rect);
+        let entity_rect = entity_collider.to_rect_at(&entity_transform);
+        let wall_rect = wall_collider.to_rect_at(&wall_transform);
 
-                let push_away = 0.2 * (entity_rect.center() - overlap.center());
+        let overlap = entity_rect.intersect(wall_rect);
 
-                transform.translation += push_away.extend(0.);
-            }
-        }
+        let base_push = if overlap.width() < overlap.height() {
+            Vec2::new(overlap.width(), 0.)
+        } else {
+            Vec2::new(0., overlap.height())
+        };
+
+        let push_away = base_push * (entity_rect.center() - wall_rect.center()).signum();
+        entity_transform.translation += push_away.extend(0.);
     }
 }

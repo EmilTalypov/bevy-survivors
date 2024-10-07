@@ -101,7 +101,6 @@ fn detect_collisions(mut colliders_q: Query<(Entity, &Transform, &mut Collider)>
     }
 
     for (entity_a, _, mut collider_a) in colliders_q.iter_mut() {
-        collider_a.collisions.clear();
         collider_a.collisions = collisions.remove(&entity_a).unwrap_or_default();
     }
 }
