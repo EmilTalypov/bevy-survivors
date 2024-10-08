@@ -1,4 +1,4 @@
-use bevy::{prelude::*, utils::hashbrown::HashMap};
+use bevy::{prelude::*, sprite::MaterialMesh2dBundle, utils::hashbrown::HashMap};
 
 use crate::{
     ghost::Ghost,
@@ -11,6 +11,7 @@ pub struct CollisionPlugin;
 impl Plugin for CollisionPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Update, detect_collisions.in_set(InGame::CollisionDetection))
+            .add_systems(Update, setup_collision_gizmos)
             .add_systems(
                 Update,
                 (
@@ -113,5 +114,29 @@ fn handle_collisions<T: Component>(
         for collided_with in collider.collisions.iter() {
             events.send(CollisionEvent::new(entity, *collided_with));
         }
+    }
+}
+
+fn setup_collision_gizmos(
+    mut commands: Commands,
+    entites_q: Query<(Entity, &Collider), Added<Collider>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
+    if !cfg!(feature = "gizmos") {
+        return;
+    }
+
+    let color = Color::srgba(0.196, 0.804, 0.196, 0.5);
+
+    for (entity, collider) in entites_q.iter() {
+        commands.entity(entity).with_children(|parent| {
+            parent.spawn(MaterialMesh2dBundle {
+                mesh: meshes.add(Rectangle::from_size(collider.size)).into(),
+                material: materials.add(ColorMaterial::from(color)),
+                transform: Transform::from_translation(collider.offset.extend(100.)),
+                ..default()
+            });
+        });
     }
 }

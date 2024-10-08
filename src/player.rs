@@ -15,7 +15,7 @@ pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.register_ldtk_entity::<PlayerBundle>("Player")
+        app.register_ldtk_entity::<PlayerBundle>("player")
             .add_systems(Update, throw_weapon.in_set(InGame::ProcessCombat))
             .add_systems(Update, player_movement.in_set(InGame::UserInput));
     }
@@ -24,9 +24,9 @@ impl Plugin for PlayerPlugin {
 const PLAYER_SPEED: f32 = 50.;
 const PLAYER_SIZE: Vec2 = Vec2::splat(15.);
 const PLAYER_START_HEALTH: u32 = 30;
-const PLAYER_ATTACK_COOLDOWN: f32 = 1.;
+const PLAYER_ATTACK_COOLDOWN: f32 = 1.5;
 const PLAYER_DAMAGE_COOLDOWN: f32 = 0.25;
-const DAGGER_SPEED: f32 = 25.;
+const DAGGER_SPEED: f32 = 100.;
 const DAGGER_SPAWN_DISTANCE: f32 = 16.;
 const DAGGER_DAMAGE: u32 = 5;
 const DAGGER_HEALTH: u32 = 1;
@@ -70,10 +70,10 @@ impl Default for PlayerBundle {
 }
 
 fn player_movement(
-    mut player_q: Query<&mut Velocity, With<Player>>,
+    mut player_q: Query<(&mut Velocity, &mut Transform), With<Player>>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
 ) {
-    if let Ok(mut player_velocity) = player_q.get_single_mut() {
+    if let Ok((mut player_velocity, mut player_transform)) = player_q.get_single_mut() {
         let mut direction = Vec3::ZERO;
 
         for key in keyboard_input.get_pressed() {
@@ -87,6 +87,7 @@ fn player_movement(
         }
 
         player_velocity.change_direction_speed(direction, PLAYER_SPEED);
+        player_transform.translation.z = 100.;
     }
 }
 
@@ -110,16 +111,11 @@ fn throw_weapon(
             let mut transform = *player_transform;
 
             transform.translation += direction * DAGGER_SPAWN_DISTANCE;
+            transform.translation.z = 100.;
             transform.rotate(Quat::from_axis_angle(
                 Vec3::Z,
-                (i as f32) * f32::consts::FRAC_PI_2,
+                (i as f32) * std::f32::consts::FRAC_PI_2,
             ));
-
-            let collider_size = if i % 2 == 0 {
-                Vec2::new(8., 13.)
-            } else {
-                Vec2::new(13., 8.)
-            };
 
             commands.spawn((
                 Dagger,
@@ -128,7 +124,7 @@ fn throw_weapon(
                     transform,
                     ..default()
                 },
-                Collider::new(collider_size),
+                Collider::new(Vec2::new(8., 13.)),
                 CollisionDamage::new(DAGGER_DAMAGE),
                 Health::with_damage_cooldown(DAGGER_HEALTH, PLAYER_DAMAGE_COOLDOWN),
                 MovementBundle {

@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use crate::{
     collision::{Collider, CollisionEvent},
     ghost::Ghost,
-    levels::Wall,
+    levels::WallTile,
     player::Player,
     schedule::InGame,
 };
@@ -61,8 +61,8 @@ fn update_position(mut query: Query<(&Velocity, &mut Transform)>, time: Res<Time
 
 fn keep_inside_walls<T: Component>(
     mut events: EventReader<CollisionEvent>,
-    mut entities_q: Query<(&mut Transform, &Collider), (With<T>, Without<Wall>)>,
-    walls_q: Query<(&Transform, &Collider), With<Wall>>,
+    mut entities_q: Query<(&mut Transform, &Collider), (With<T>, Without<WallTile>)>,
+    walls_q: Query<(&Transform, &Collider), With<WallTile>>,
 ) {
     for event in events.read() {
         let Ok((mut entity_transform, entity_collider)) = entities_q.get_mut(event.entity) else {

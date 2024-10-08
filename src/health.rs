@@ -84,10 +84,7 @@ fn take_damage<T: Component, E: Component>(
     }
 }
 
-fn despawn_dead_entities(
-    mut commands: Commands,
-    entities_q: Query<(Entity, &Health), Without<Player>>,
-) {
+fn despawn_dead_entities(mut commands: Commands, entities_q: Query<(Entity, &Health)>) {
     for (entity, health) in entities_q.iter() {
         if health.amount == 0 {
             commands.entity(entity).despawn_recursive();

@@ -24,6 +24,10 @@ fn camera_follows_player(
     project: Query<&Handle<LdtkProject>>,
     project_assets: Res<Assets<LdtkProject>>,
 ) {
+    let Ok((mut camera_transform, projection)) = camera_q.get_single_mut() else {
+        return;
+    };
+
     let Ok(player_transform) = player_q.get_single() else {
         return;
     };
@@ -36,8 +40,6 @@ fn camera_follows_player(
             .expect("No level!");
 
         if level_selection.is_match(&LevelIndices::default(), level) {
-            let (mut camera_transform, projection) = camera_q.get_single_mut().expect("No Camera!");
-
             let top_right = Vec3::new(level.px_wid as f32, level.px_hei as f32, 0.);
             let bottom_left = Vec3::ZERO;
 
